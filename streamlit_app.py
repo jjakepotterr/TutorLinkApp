@@ -4,17 +4,40 @@
 
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timedelta
+import random
 import datetime as dt
+import numpy as np
+from streamlit_calendar import streamlit_calendar
 
-st.set_page_config(page_title="Tutor Demo - Jared Dudley", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="TutorLink Demo - Jared Dudley", page_icon="🎓", layout="wide")
 
 # =========================
 # Session-State Bootstraps
 # =========================
+
+def generate_timeslots():
+    timeslots = []
+    current_day = (datetime.now()).replace(hour = 7, minute = 0, second = 0, microsecond = 0)
+    for n in range(1,8):
+        for m in range(0, 13):
+            if random.randint(0,2) == 1:
+                timeslots.append(current_day + timedelta(days = n, hours = m))
+    return timeslots
+
+t1 = generate_timeslots()
+t2 = generate_timeslots()
+t3 = generate_timeslots()
+
 def init_state():
     ss = st.session_state
     if "active_session" not in ss:
         ss.active_session = None  # {"tutor": str, "subject": str, "material_note": str|None, "started_at": iso}
+
+    if "admin" not in ss:
+        ss.admin = {
+            "name": "Admin"
+        }
 
     if "student" not in ss:
         ss.student = {
@@ -28,17 +51,25 @@ def init_state():
         ss.tutors = {
             "Jerry Spinelli": {
                 "name": "Jerry Spinelli",
-                "subjects": ["Algebra II", "Algebra 2", "Algebra"],
+                "subjects": ["Algebra", "Algebra 2", "Calculus"],
                 "bio": "Patient Algebra II tutor with focus on factoring, quadratics, and functions.",
-                "rating": 1.8,
+                "rating": 4,
                 "ratings_count": 3,
                 "last_updated": dt.date(2025, 10, 20).isoformat(),
             },
             "Shek Wes": {
                 "name": "Shek Wes",
-                "subjects": ["Algebra II", "Algebra 2", "Algebra"],
+                "subjects": ["Algebra", "Algebra 2", "Geometry"],
                 "bio": "Energetic Algebra II tutor who loves real-world problem modeling.",
                 "rating": None,
+                "ratings_count": 0,
+                "last_updated": None,
+            },            
+            "Herbert Perbert": {
+                "name": "Herbert Perbert",
+                "subjects": ["English", "English II", "Philosophy"],
+                "bio": "English Major #TeachingNow. When I am not tutoring I am fishing",
+                "rating": 0.2,
                 "ratings_count": 0,
                 "last_updated": None,
             },
@@ -52,7 +83,7 @@ def init_state():
         ]
 
     if "selected_tutor" not in ss:
-        ss.selected_tutor = None
+        ss.selected_tutor = None 
 
     # persist which tutor was last rated so the “Go to profile” button can survive reruns
     if "last_rated_tutor" not in ss:
@@ -197,6 +228,7 @@ def tutor_card(tutor_name: str):
         with right:
             if st.button("Open profile", key=f"open_{tutor_name}", use_container_width=True):
                 st.session_state.selected_tutor = tutor_name
+                print(st.session_state.selected_tutor)
                 navigate("Tutor Profile")
 
 def tutor_profile_view(tutor_name: str):
@@ -221,15 +253,17 @@ def tutor_profile_view(tutor_name: str):
         is_active_here = bool(active and active.get("tutor") == tutor_name)
 
         if not is_active_here:
-            if st.button("Start session", key=f"start_{tutor_name}", use_container_width=True):
+            if st.button("Book Session", key=f"start_{tutor_name}", use_container_width=True):
                 st.session_state.active_session = {
                     "tutor": tutor_name,
                     "subject": subj,
                     "material_note": None,  # will be provided after start
                     "started_at": dt.datetime.now().isoformat(),
+
                 }
-                st.toast(f"Session with {tutor_name} started for {subj}")
-                st.rerun()
+  #              st.toast(f"Session with {tutor_name} started for {subj}")
+ #               st.rerun()
+                navigate("Tutor_Booking")
         else:
             note_key = f"material_note_{tutor_name}"
             existing = active.get("material_note") or ""
@@ -263,11 +297,14 @@ init_nav()
 st.sidebar.title("🎓 Student Portal")
 
 def is_active(p): return st.session_state.page == p
+
 b1 = st.sidebar.button("Profile", use_container_width=True, type="primary" if is_active("Profile") else "secondary")
 b2 = st.sidebar.button("Tutor Link", use_container_width=True, type="primary" if is_active("Find Tutors") else "secondary")
+b3 = st.sidebar.button("Schedule", use_container_width=True, type="primary" if is_active("Schedule") else "secondary")
 
 if b1: navigate("Profile")
 elif b2: navigate("Find Tutors")
+elif b3: navigate("Schedule")
 
 page = st.session_state.page
 
@@ -399,6 +436,16 @@ elif page == "Survey":
             st.session_state.prefill_tutor = shown_tutor
             st.session_state.page = "Tutor Profile"
             st.rerun()
+
+elif page == "Tutor_Booking":
+    st.header(f"Timeslots for {st.session_state.selected_tutor}")
+
+elif page == "Schedule":
+    st.title("My Schedule")
+    days_cols = st.columns(7)
+    
+        
+
 
 # =========================
 # Footer
