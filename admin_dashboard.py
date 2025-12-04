@@ -64,7 +64,6 @@ def admin_dashboard():
         if st.button("Add Student User"):
             wb.navigate("Add_Student_Form")
 
-        
         if not results:
             st.warning("No results found.")
         else:
@@ -89,11 +88,17 @@ def admin_dashboard():
             st.write("Enter credentials for new user.")
             _uname_ = st.text_input("Username")
             _password_ = st.text_input("Password")
-            entry = { _uname_ : { "password" : _password_, "role" : "student", "UID" : random.randint(0, 9999)  }}
+            _sname_ = st.text_input("Legal Name")
+            _major_ = st.text_input("Major")
+            uid = random.randint(0, 9999)
+            entry = { _uname_ : { "password" : _password_, "role" : "student", "UID" : uid }}
+            _student_ = { uid : { "name": _sname_, "major" : _major_, "year" : "Unknown", "email" : "Unknown" } }
             submitted = st.form_submit_button("Confirm")
 
             if submitted:
                 df.CREDENTIALS.update(entry)
+                df.students.update(_student_)
+                print(df.CREDENTIALS)
                 wb.navigate("Student_Database")
 
 

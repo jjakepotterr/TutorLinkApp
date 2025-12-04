@@ -7,7 +7,6 @@ import numpy as np
 import login_tl as lm
 import admin_dashboard as adb
 import student_dashboard as sdb
-from streamlit_calendar import calendar
 import datafile
 
 st.set_page_config(page_title="TutorLink Demo", layout="wide")

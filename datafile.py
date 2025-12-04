@@ -48,8 +48,8 @@ tutors = {
                 "subjects": ["English", "English II", "Philosophy"],
                 "bio": "English Major #TeachingNow. When I am not tutoring I am fishing!!",
                 "rating": 0.2,
-                "ratings_count": 0,
-                "last_updated": None,
+                "ratings_count": 4,
+                "last_updated": dt.date(2025, 11, 2).isoformat(),
                 "dates_available": sh.generate_timeslots()
             },
         }

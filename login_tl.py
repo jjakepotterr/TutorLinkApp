@@ -23,7 +23,7 @@ def login(username: str, password: str):
         return False
 
 def show_home():
-    st.title("Welcome to TutorLink 2025")
+    st.title("Welcome to TutorLink")
     col1, col2 = st.columns(2)
     with col1:
         if st.button("For Students", use_container_width=True, key="home_student"):

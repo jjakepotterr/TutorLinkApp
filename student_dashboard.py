@@ -160,10 +160,6 @@ def student_dashboard():
         st.header(f"Timeslots for {st.session_state.selected_tutor}")
         t = st.session_state.tutors[st.session_state.selected_tutor]
 
-        for t in st.session_state.selected_tutor["dates_available"]:
-            print(t)
-            st.button(t.strftime(format))
-
     elif page == "Schedule":
         st.title("My Schedule")
         if not st.session_state.schedule:
