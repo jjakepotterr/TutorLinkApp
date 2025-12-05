@@ -7,57 +7,85 @@ import admin_helper as ah
 import random
 import datafile as df
 
+
 def admin_dashboard():
     ss = st.session_state
 
+    # Sidebar
     st.sidebar.title("Admin Portal")
 
-    def is_active(p): return st.session_state.page == p
+    def is_active(p):
+        return ss.page == p
 
-    b1 = st.sidebar.button("Student Database", use_container_width=True, type="primary" if is_active("Student_Database") else "secondary")
-    b2 = st.sidebar.button("Tutor Database", use_container_width=True, type="primary" if is_active("Tutor_Database") else "secondary")
-    b3 = st.sidebar.button("Logout", use_container_width = True, type="primary")
+    b1 = st.sidebar.button("Student Database", use_container_width=True,
+                           type="primary" if is_active("Student_Database") else "secondary")
+    b2 = st.sidebar.button("Tutor Database", use_container_width=True,
+                           type="primary" if is_active("Tutor_Database") else "secondary")
+    b3 = st.sidebar.button("Logout", use_container_width=True)
 
-    if b1: wb.navigate("Student_Database")
-    elif b2: wb.navigate("Tutor_Database")
-    elif b3: wb.logout()
+    if b1:
+        wb.navigate("Student_Database")
+    elif b2:
+        wb.navigate("Tutor_Database")
+    elif b3:
+        wb.logout()
 
-    page = st.session_state.page
+    page = ss.page
 
-    # =========================
-    # Pages
-    # =========================
-
+    # -----------------------------
+    # ADMIN LANDING
+    # -----------------------------
     if page == "Admin_Home":
-
         st.title("Welcome, Admin")
-        st.text("Review the left navigation panel to view records and perform operations.")
-        st.caption("Admin perspective demo")
+        st.caption("Use the sidebar to manage students, tutors, or system data.")
         st.divider()
 
+    # -----------------------------
+    # TUTOR DATABASE VIEW
+    # -----------------------------
     elif page == "Tutor_Database":
-        # clear last rating banner when leaving Survey
         st.session_state.last_rated_tutor = None
         st.session_state.last_rating_score = None
 
-        st.title("🔎 Search Tutor Database")
-        
-        query = st.text_input("Keywords", placeholder="e.g., algebra")
-        results = sh.search_tutors_by_subject((query or "").strip())
+        st.title("🔎 Tutor Database")
+
+        query = st.text_input("Search by subject or tutor name", placeholder="e.g., Algebra")
+
+        query_l = (query or "").lower()
+        tutors = st.session_state.tutors
+
+        # Basic search
+        results = [
+            name for name, t in tutors.items()
+            if query_l in name.lower() or
+               any(query_l in s.lower() for s in t["subjects"])
+        ]
+
         st.caption(f"{len(results)} result(s)")
         st.divider()
 
         if not results:
-            st.warning("No tutors matched that subject. Try 'algebra'.")
+            st.warning("No tutors found.")
         else:
             for name in results:
-                tutor_card(name)
+                tutor_card_admin(name)
 
+    # -----------------------------
+    # STUDENT DATABASE VIEW
+    # -----------------------------
     elif page == "Student_Database":
+        st.title("🔎 Student Database")
 
-        st.title("🔎 Search Student Database")
-        query = st.text_input("Keywords")
-        results = ah.search_students_by_name((query or "").strip())
+        query = st.text_input("Search by student name or ID", placeholder="e.g., Jared")
+
+        query_l = (query or "").lower()
+        student_dict = df.students
+
+        results = [
+            sid for sid, s in student_dict.items()
+            if query_l in sid.lower() or query_l in s["name"].lower()
+        ]
+
         st.caption(f"{len(results)} result(s)")
         st.divider()
 
@@ -65,61 +93,67 @@ def admin_dashboard():
             wb.navigate("Add_Student_Form")
 
         if not results:
-            st.warning("No results found.")
+            st.warning("No matching students.")
         else:
-            for name in results:
-                ah.student_card(name)
+            for sid in results:
+                ah.student_card(sid)
 
-    elif page == "Tutor_Profile_Admin":
-        # clear last rating banner when leaving Survey
-        st.session_state.last_rated_tutor = None
-        st.session_state.last_rating_score = None
-
-        st.title("Tutor Profile")
-        tutor_names = list(st.session_state.tutors.keys())
-        default_index = 0
-        if st.session_state.selected_tutor in tutor_names:
-            default_index = tutor_names.index(st.session_state.selected_tutor)
-        selected = st.selectbox("Select a tutor", tutor_names, index=default_index)
-        sh.tutor_profile_view(selected)
-
+    # -----------------------------
+    # ADD STUDENT FORM
+    # -----------------------------
     elif page == "Add_Student_Form":
+        st.title("Add New Student")
+
         with st.form("add_student"):
-            st.write("Enter credentials for new user.")
-            _uname_ = st.text_input("Username")
-            _password_ = st.text_input("Password")
-            _sname_ = st.text_input("Legal Name")
-            _major_ = st.text_input("Major")
-            uid = random.randint(0, 9999)
-            entry = { _uname_ : { "password" : _password_, "role" : "student", "UID" : uid }}
-            _student_ = { uid : { "name": _sname_, "major" : _major_, "year" : "Unknown", "email" : "Unknown" } }
-            submitted = st.form_submit_button("Confirm")
+            new_id = st.text_input("Student ID (unique)", placeholder="e.g., AB123")
+            name = st.text_input("Legal Name")
+            major = st.text_input("Major")
+            year = st.text_input("Year")
+            email = st.text_input("Email")
+            password = st.text_input("Login Password")
+
+            submitted = st.form_submit_button("Create Student")
 
             if submitted:
-                df.CREDENTIALS.update(entry)
-                df.students.update(_student_)
-                print(df.CREDENTIALS)
-                wb.navigate("Student_Database")
+                if new_id in df.students:
+                    st.error("That student ID already exists.")
+                else:
+                    # Add to master lists
+                    df.students[new_id] = {
+                        "name": name,
+                        "major": major,
+                        "year": year,
+                        "email": email
+                    }
+                    df.CREDENTIALS[new_id] = {
+                        "password": password,
+                        "role": "student",
+                        "UID": new_id
+                    }
+                    st.success("Student added successfully!")
+                    wb.navigate("Student_Database")
 
 
-
-def tutor_card(tutor_name: str):
+# ============================
+# TUTOR CARD FOR ADMIN VIEW
+# ============================
+def tutor_card_admin(tutor_name: str):
     t = st.session_state.tutors[tutor_name]
     with st.container(border=True):
-        left, right = st.columns([3, 2], vertical_alignment="center")
+        left, right = st.columns([3, 1])
+
         with left:
             st.subheader(t["name"])
-            st.caption(", ".join(sorted(set(t["subjects"]))))
+            st.caption(", ".join(t["subjects"]))
             st.write(t["bio"])
             st.markdown(sh.star_bar(t["rating"]), unsafe_allow_html=True)
-            if t["ratings_count"]:
-                st.caption(f"{t['ratings_count']} rating(s) • Updated {t['last_updated']}")
-            else:
-                st.caption("Be the first to rate this tutor after a session.")
-        with right:
-            if st.button("Manage", key=f"open_{tutor_name}", use_container_width=True):
-                st.session_state.selected_tutor = tutor_name
-                wb.navigate("Tutor_Profile_Admin")
-            if st.button("Fire Tutor", key=f"fire_{tutor_name}", use_container_width=True):
-                del st.session_state.tutors[tutor_name]
 
+        with right:
+            st.caption(f"Ratings: {t['ratings_count']}")
+            st.caption(f"Updated: {t['last_updated']}")
+
+            if st.button(f"Remove {tutor_name}", key=f"fire_{tutor_name}",
+                         use_container_width=True):
+                del st.session_state.tutors[tutor_name]
+                st.warning(f"Tutor {tutor_name} removed.")
+                st.rerun()

@@ -4,18 +4,23 @@ import webfunc as wb
 import pandas as pd
 import datetime as dt
 
+
 def student_dashboard():
     ss = st.session_state
     st.sidebar.title("Student Portal")
 
-    def is_active(p): return st.session_state.page == p
+    def is_active(page):
+        return ss.page == page
 
-    b1 = st.sidebar.button("Profile", use_container_width=True, type="primary" if is_active("Profile") else "secondary", key = "btn_profile")
-    b2 = st.sidebar.button("TutorLink Search", use_container_width=True, type="primary" if is_active("Find_Tutors") else "secondary", key = "btn_tutor")
-    b3 = st.sidebar.button("Schedule", use_container_width=True, type="primary" if is_active("Schedule") else "secondary", key = "btn_schedule")
-    b4 = st.sidebar.button("Rate Tutor", use_container_width = True)
-    b5 = st.sidebar.button("Logout", use_container_width = True, type="primary", key = "btn_exit")
-   
+    # Sidebar navigation
+    b1 = st.sidebar.button("Profile", use_container_width=True,
+                           type="primary" if is_active("Profile") else "secondary")
+    b2 = st.sidebar.button("Find Tutors", use_container_width=True,
+                           type="primary" if is_active("Find_Tutors") else "secondary")
+    b3 = st.sidebar.button("My Schedule", use_container_width=True,
+                           type="primary" if is_active("Schedule") else "secondary")
+    b4 = st.sidebar.button("Rate Tutor", use_container_width=True)
+    b5 = st.sidebar.button("Logout", use_container_width=True, type="primary")
 
     if b1: wb.navigate("Profile")
     elif b2: wb.navigate("Find_Tutors")
@@ -23,164 +28,128 @@ def student_dashboard():
     elif b4: wb.navigate("Survey")
     elif b5: wb.logout()
 
+    page = ss.page
 
-    page = st.session_state.page
-
-    # =========================
-    # P A G E S
-    # =========================
-
+    # -------------------------------
+    # PROFILE PAGE
+    # -------------------------------
     if page == "Profile":
-        # clear last rating banner when leaving Survey
-        st.session_state.last_rated_tutor = None
-        st.session_state.last_rating_score = None
+        ss.last_rated_tutor = None
+        ss.last_rating_score = None
 
-        s = st.session_state.student
-        st.title("Welcome, " + s["name"])
-        st.caption("Student perspective demo")
+        s = ss.student
+        st.title(f"Welcome, {s['name']}")
+        st.caption("Student Profile")
 
-        top_l, top_r = st.columns([3, 2])
-        with top_l:
-            st.subheader("Profile")
+        c1, c2 = st.columns([3, 2])
+
+        with c1:
+            st.subheader("About You")
             st.write(f"**Name:** {s['name']}")
-            st.write(f"**Role:** Student")
             st.write(f"**Major:** {s['major']}")
             st.write(f"**Year:** {s['year']}")
             st.write(f"**Email:** {s['email']}")
 
-        with top_r:
+        with c2:
             st.subheader("Quick Stats")
-            total_sessions = len(st.session_state.history)
-            distinct_tutors = len(set(h["tutor"] for h in st.session_state.history))
-            st.metric("Total Sessions", total_sessions)
-            st.metric("Tutors Met", distinct_tutors)
+            total = len(ss.history)
+            uniq = len(set(h["tutor"] for h in ss.history))
+            st.metric("Sessions Completed", total)
+            st.metric("Tutors Worked With", uniq)
 
         st.divider()
-        st.subheader("Tutor History")
-        if st.session_state.history:
-            # normalize legacy rows
-            normalized = []
-            for r in st.session_state.history:
-                rr = dict(r)
-                if "ts" not in rr:
-                    base_dt = dt.datetime.combine(rr.get("date", dt.date.today()), dt.time())
-                    rr["ts"] = base_dt.isoformat(timespec="seconds")
-                if "time" not in rr:
-                    rr["time"] = dt.datetime.fromisoformat(rr["ts"]).strftime("%H:%M")
-                normalized.append(rr)
-
-            hist_df = pd.DataFrame(normalized).sort_values("ts", ascending=False)
-            st.dataframe(
-                hist_df[["date", "time", "tutor", "subject", "notes"]],
-                use_container_width=True,
-                hide_index=True,
-            )
+        st.subheader("History")
+        if ss.history:
+            dfh = pd.DataFrame(ss.history).sort_values("ts", ascending=False)
+            st.dataframe(dfh[["date", "time", "tutor", "subject", "notes"]],
+                         use_container_width=True, hide_index=True)
         else:
-            st.info("No sessions yet. Book a tutor from the Tutor Link page.")
+            st.info("No completed sessions yet.")
 
+    # -------------------------------
+    # FIND TUTORS PAGE
+    # -------------------------------
     elif page == "Find_Tutors":
-        # clear last rating banner when leaving Survey
-        st.session_state.last_rated_tutor = None
-        st.session_state.last_rating_score = None
+        ss.last_rated_tutor = None
+        ss.last_rating_score = None
 
-        st.title("🔎 Find Tutors by Subject")
-        query = st.text_input("Search any subject", placeholder="e.g., algebra")
+        st.title("🔎 Find Tutors")
+
+        query = st.text_input("Search by subject", placeholder="e.g., Algebra")
         results = sh.search_tutors_by_subject((query or "").strip())
-        st.caption(f"{len(results)} result(s)")
+
+        st.caption(f"{len(results)} tutor(s) found.")
         st.divider()
 
-        if not results:
-            st.warning("No tutors matched that subject. Try 'algebra'.")
-        else:
-            for name in results:
-                tutor_card(name)
+        for name in results:
+            tutor_card(name)
 
-    elif page == "Tutor Profile":
-        # clear last rating banner when leaving Survey
-        st.session_state.last_rated_tutor = None
-        st.session_state.last_rating_score = None
+    # -------------------------------
+    # TUTOR PROFILE PAGE (FIXED)
+    # -------------------------------
+    elif page == "Tutor_Profile":
+        tutor_name = ss.get("selected_tutor")
+        if not tutor_name:
+            st.error("No tutor selected.")
+            return
 
-        st.title("👨‍🏫 Tutor Profile")
-        tutor_names = list(st.session_state.tutors.keys())
-        default_index = 0
-        if st.session_state.selected_tutor in tutor_names:
-            default_index = tutor_names.index(st.session_state.selected_tutor)
-        selected = st.selectbox("Select a tutor", tutor_names, index=default_index)
-        sh.tutor_profile_view(selected)
+        sh.tutor_profile_view(tutor_name)
 
-    elif page == "Survey":
-        st.title("Post-Session Survey")
-        tutor_names = list(st.session_state.tutors.keys())
-
-        default_idx = 0
-        if "prefill_tutor" in st.session_state:
-            try:
-                default_idx = tutor_names.index(st.session_state.prefill_tutor)
-            except ValueError:
-                default_idx = 0
-
-        tutor_name = st.selectbox("Which tutor did you meet?", tutor_names, index=default_idx)
-
-        st.markdown("#### Quick questions")
-        q1 = st.selectbox("Clarity of explanations", ["Poor", "Fair", "Good", "Great"])
-        q2 = st.selectbox("Pace of session", ["Too slow", "Just right", "Too fast"])
-        q3 = st.selectbox("Was the tutor patient and helpful?", ["No", "Somewhat", "Yes"])
-
-        st.markdown("#### Optional comments")
-        comments = st.text_area("Anything else you'd like to add? (keywords influence the AI rater)")
-
-        rated_now = False
-        if st.button("Rate with AI", use_container_width=True):
-            survey = {"clarity": q1, "pace": q2, "patience": q3, "comments": comments}
-            rating = sh.ai_rate_tutor(survey)
-            sh.update_tutor_rating(tutor_name, float(rating))
-
-            first_subject = st.session_state.tutors[tutor_name]["subjects"][0] if st.session_state.tutors[tutor_name]["subjects"] else "N/A"
-            sh.add_history_entry(tutor_name, first_subject, "Survey submitted")
-
-            st.session_state.last_rated_tutor = tutor_name
-            st.session_state.last_rating_score = rating
-            rated_now = True
-
-        # Persist and render the success + go-to-profile even after rerun
-        just_rated_tutor = st.session_state.get("last_rated_tutor")
-        if rated_now or just_rated_tutor:
-            shown_tutor = tutor_name if rated_now else just_rated_tutor
-            shown_score = st.session_state.get("last_rating_score")
-            if shown_score is not None:
-                st.success(f"AI rated this session: {shown_score} ⭐")
-
-            if st.button(f"Go to {shown_tutor}'s profile →", use_container_width=True):
-                st.session_state.selected_tutor = shown_tutor
-                st.session_state.prefill_tutor = shown_tutor
-                st.session_state.page = "Tutor Profile"
-                st.rerun()
-
-    elif page == "Tutor_Booking":
-        st.header(f"Timeslots for {st.session_state.selected_tutor}")
-        t = st.session_state.tutors[st.session_state.selected_tutor]
-
+    # -------------------------------
+    # STUDENT SCHEDULE
+    # -------------------------------
     elif page == "Schedule":
-        st.title("My Schedule")
-        if not st.session_state.schedule:
-            st.header("Your schedule is currently empty.")
+        st.title("📅 My Schedule")
+
+        schedule = ss.get("schedule", [])
+
+        if not schedule:
+            st.info("You have no scheduled or requested sessions.")
+            return
+
+        df_sched = pd.DataFrame(schedule).sort_values(["date", "time"])
+
+        st.write("### Your Session Requests")
+        st.dataframe(df_sched[["tutor", "subject", "date", "time", "status"]],
+                     use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.subheader("Manage Pending Requests")
+
+        pending = [req for req in schedule if req["status"] == "pending"]
+
+        for i, req in enumerate(pending):
+            with st.container(border=True):
+                st.write(f"**Tutor:** {req['tutor']}")
+                st.write(f"**Subject:** {req['subject']}")
+                st.write(f"**Date:** {req['date']}")
+                st.write(f"**Time:** {req['time']}")
+                st.write("**Status:** 🟡 Pending")
+
+                if st.button(f"Cancel Request {i+1}", key=f"cancel_{i}"):
+                    ss.schedule.remove(req)
+                    if req in ss.pending_requests:
+                        ss.pending_requests.remove(req)
+                    st.warning("Request canceled.")
+                    st.rerun()
 
 
+# -------------------------------
+# TUTOR CARD COMPONENT
+# -------------------------------
 def tutor_card(tutor_name: str):
     t = st.session_state.tutors[tutor_name]
+
     with st.container(border=True):
-        left, right = st.columns([3, 2], vertical_alignment="center")
-        with left:
-            st.subheader(t["name"])
-            st.caption(", ".join(sorted(set(t["subjects"]))))
+        c1, c2 = st.columns([3, 1])
+
+        with c1:
+            st.subheader(tutor_name)
+            st.caption(", ".join(t["subjects"]))
             st.write(t["bio"])
             st.markdown(sh.star_bar(t["rating"]), unsafe_allow_html=True)
-            if t["ratings_count"]:
-                st.caption(f"{t['ratings_count']} rating(s) • Updated {t['last_updated']}")
-            else:
-                st.caption("Be the first to rate this tutor after a session.")
-        with right:
-            if st.button("Open profile", key=f"open_{tutor_name}", use_container_width=True):
-                st.session_state.selected_tutor = tutor_name
-                wb.navigate("Tutor Profile")
 
+        with c2:
+            if st.button("View Profile", key=f"open_{tutor_name}", use_container_width=True):
+                st.session_state.selected_tutor = tutor_name
+                wb.navigate("Tutor_Profile")
