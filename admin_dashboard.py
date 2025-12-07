@@ -47,7 +47,7 @@ def admin_dashboard():
         st.session_state.last_rated_tutor = None
         st.session_state.last_rating_score = None
 
-        st.title("🔎 Tutor Database")
+        st.title("Tutor Database")
 
         query = st.text_input("Search by subject or tutor name", placeholder="e.g., Algebra")
 
@@ -74,7 +74,7 @@ def admin_dashboard():
     # STUDENT DATABASE VIEW
     # -----------------------------
     elif page == "Student_Database":
-        st.title("🔎 Student Database")
+        st.title("Student Database")
 
         query = st.text_input("Search by student name or ID", placeholder="e.g., Jared")
 

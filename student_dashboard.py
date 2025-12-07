@@ -73,7 +73,7 @@ def student_dashboard():
         ss.last_rated_tutor = None
         ss.last_rating_score = None
 
-        st.title("🔎 Find Tutors")
+        st.title("Find Tutors")
 
         query = st.text_input("Search by subject", placeholder="e.g., Algebra")
         results = sh.search_tutors_by_subject((query or "").strip())
@@ -99,7 +99,7 @@ def student_dashboard():
     # STUDENT SCHEDULE
     # -------------------------------
     elif page == "Schedule":
-        st.title("📅 My Schedule")
+        st.title("My Schedule:")
 
         schedule = ss.get("schedule", [])
 
