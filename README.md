@@ -3,6 +3,8 @@ TutorLink is a web app that matches students needing help with classmates who ca
 
 
 
-check out how the UI looks here: https://docs.google.com/presentation/d/1xb9HnEU2NCs_aNaNdfWdd2rUPEQhed1wDThgkM9VF4E/edit?slide=id.g3aceacaf65c_0_0#slide=id.g3aceacaf65c_0_0
-
+check out how the UI looks here: 
+<a href="https://docs.google.com/presentation/d/1xb9HnEU2NCs_aNaNdfWdd2rUPEQhed1wDThgkM9VF4E/edit?slide=id.g3aceacaf65c_0_0#slide=id.g3aceacaf65c_0_0" target="_blank">
+View UI Demo
+</a>
 and check out the data files to try out the demo user & passwords
